@@ -2,7 +2,7 @@
 
 extern crate test;
 
-use tokio::runtime::{Builder, Spawner};
+use tokio::runtime::{Builder, Handle};
 use tokio::sync::oneshot;
 
 use std::future::Future;
@@ -108,20 +108,20 @@ fn ping_pong(b: &mut test::Bencher) {
         let rem = rem.clone();
         rem.store(NUM_PINGS, Relaxed);
 
-        let spawner = threadpool.spawner().clone();
+        let handle = threadpool.handle().clone();
 
         threadpool.spawn(async move {
             for _ in 0..NUM_PINGS {
                 let rem = rem.clone();
                 let done_tx = done_tx.clone();
 
-                let spawner2 = spawner.clone();
+                let handle2 = handle.clone();
 
-                spawner.spawn(async move {
+                handle.spawn(async move {
                     let (tx1, rx1) = oneshot::channel();
                     let (tx2, rx2) = oneshot::channel();
 
-                    spawner2.spawn(async move {
+                    handle2.spawn(async move {
                         rx1.await.unwrap();
                         tx2.send(()).unwrap();
                     });
@@ -150,13 +150,13 @@ fn chained_spawn(b: &mut test::Bencher) {
         .build()
         .unwrap();
 
-    fn iter(spawner: Spawner, done_tx: mpsc::SyncSender<()>, n: usize) {
+    fn iter(handle: Handle, done_tx: mpsc::SyncSender<()>, n: usize) {
         if n == 0 {
             done_tx.send(()).unwrap();
         } else {
-            let s2 = spawner.clone();
-            spawner.spawn(async move {
-                iter(s2, done_tx, n - 1);
+            let handle2 = handle.clone();
+            handle.spawn(async move {
+                iter(handle2, done_tx, n - 1);
             });
         }
     }
@@ -165,9 +165,9 @@ fn chained_spawn(b: &mut test::Bencher) {
 
     b.iter(move || {
         let done_tx = done_tx.clone();
-        let spawner = threadpool.spawner().clone();
+        let handle = threadpool.handle().clone();
         threadpool.spawn(async move {
-            iter(spawner, done_tx, ITER);
+            iter(handle, done_tx, ITER);
         });
 
         done_rx.recv().unwrap();
