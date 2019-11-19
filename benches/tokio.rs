@@ -34,7 +34,7 @@ fn spawn_many(b: &mut test::Bencher) {
 
     let threadpool = Builder::new()
         .num_threads(num_cpus::get().max(1))
-        .thread_pool()
+        .threaded_scheduler()
         .build()
         .unwrap();
 
@@ -66,7 +66,7 @@ fn yield_many(b: &mut test::Bencher) {
 
     let threadpool = Builder::new()
         .num_threads(num_cpus::get().max(1))
-        .thread_pool()
+        .threaded_scheduler()
         .build()
         .unwrap();
 
@@ -96,7 +96,7 @@ fn ping_pong(b: &mut test::Bencher) {
 
     let threadpool = Builder::new()
         .num_threads(num_cpus::get().max(1))
-        .thread_pool()
+        .threaded_scheduler()
         .build()
         .unwrap();
 
@@ -146,7 +146,7 @@ fn chained_spawn(b: &mut test::Bencher) {
 
     let threadpool = Builder::new()
         .num_threads(num_cpus::get().max(1))
-        .thread_pool()
+        .threaded_scheduler()
         .build()
         .unwrap();
 
