@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 tokio = { version = "0.2.20", features = ["full"] }
-async-std = "1.5.0"
+async-std = "1.6.0-beta.1"
 num_cpus = "1.13.0"
