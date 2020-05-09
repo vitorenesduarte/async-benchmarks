@@ -2,7 +2,7 @@
 
 extern crate test;
 
-use tokio::runtime::{Builder, Handle};
+use tokio::runtime::Handle;
 use tokio::sync::oneshot;
 
 use std::future::Future;
@@ -28,15 +28,30 @@ impl Future for Backoff {
     }
 }
 
+fn tokio_runtime() -> tokio::runtime::Runtime {
+    // get number of cpus
+    let cpus = num_cpus::get();
+    println!("cpus: {}", cpus);
+
+    // create tokio runtime
+    tokio::runtime::Builder::new()
+        .threaded_scheduler()
+        .core_threads(cpus)
+        .enable_io()
+        .enable_time()
+        .thread_name("runner")
+        .build()
+        .expect("tokio runtime build should work")
+}
+
 #[bench]
 fn spawn_many(b: &mut test::Bencher) {
     const NUM_SPAWN: usize = 10_000;
 
-    let threadpool = Builder::new()
-        .num_threads(num_cpus::get().max(1))
-        .threaded_scheduler()
-        .build()
-        .unwrap();
+    let cpus = num_cpus::get();
+    println!("cpus: {}", cpus);
+
+    let threadpool = tokio_runtime();
 
     let (tx, rx) = mpsc::sync_channel(1000);
     let rem = Arc::new(AtomicUsize::new(0));
@@ -64,11 +79,7 @@ fn yield_many(b: &mut test::Bencher) {
     const NUM_YIELD: usize = 1_000;
     const TASKS_PER_CPU: usize = 50;
 
-    let threadpool = Builder::new()
-        .num_threads(num_cpus::get().max(1))
-        .threaded_scheduler()
-        .build()
-        .unwrap();
+    let threadpool = tokio_runtime();
 
     let tasks = TASKS_PER_CPU * num_cpus::get_physical();
     let (tx, rx) = mpsc::sync_channel(tasks);
@@ -94,11 +105,7 @@ fn yield_many(b: &mut test::Bencher) {
 fn ping_pong(b: &mut test::Bencher) {
     const NUM_PINGS: usize = 1_000;
 
-    let threadpool = Builder::new()
-        .num_threads(num_cpus::get().max(1))
-        .threaded_scheduler()
-        .build()
-        .unwrap();
+    let threadpool = tokio_runtime();
 
     let (done_tx, done_rx) = mpsc::sync_channel(1000);
     let rem = Arc::new(AtomicUsize::new(0));
@@ -144,11 +151,7 @@ fn ping_pong(b: &mut test::Bencher) {
 fn chained_spawn(b: &mut test::Bencher) {
     const ITER: usize = 1_000;
 
-    let threadpool = Builder::new()
-        .num_threads(num_cpus::get().max(1))
-        .threaded_scheduler()
-        .build()
-        .unwrap();
+    let threadpool = tokio_runtime();
 
     fn iter(handle: Handle, done_tx: mpsc::SyncSender<()>, n: usize) {
         if n == 0 {
